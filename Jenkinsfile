@@ -20,5 +20,22 @@ pipeline {
                 }
             }
         }
+        stage('deploy') {
+            steps {
+                catchError (buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh 'sam build'
+                    sh '''sam deploy \
+                        --stack-name 'ToDoAWSCasoPractico1D' \
+                        --capabilities 'CAPABILITY_IAM' \
+                        --s3-bucket 'casopractico1d' \
+                        --region 'us-east-1' \
+                        -t 'template.yaml' \
+                        --config-file 'samconfig.toml' \
+                        --parameter-overrides "Stage=staging" \
+                        --role-arn 'arn:aws:iam::159559436639:role/LabRole'
+                    '''
+                }
+            }
+        }
     }
 }
