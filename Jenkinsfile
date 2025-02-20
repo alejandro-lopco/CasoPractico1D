@@ -5,7 +5,6 @@ pipeline {
             steps {
                 git branch: 'develop', url: 'https://github.com/alejandro-lopco/CasoPractico1D'
                 stash includes: '**', name: 'repo'
-                sh 'ls'
             }
         }
         stage('staticTest') {
@@ -34,14 +33,29 @@ pipeline {
                         --parameter-overrides "Stage=staging" \
                         --role-arn 'arn:aws:iam::159559436639:role/LabRole'
                     '''
+                    sh '''aws cloudformation describe-stacks \
+                        --stack-name ToDoAWSCasoPractico1D \
+                        --query "Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue" \
+                        --output text > BASE_URL.log
+                    '''
+                    sh '''aws cloudformation describe-stack-resources \
+                    --stack-name ToDoAWSCasoPractico1D \
+                    --query "StackResources[?ResourceType=='AWS::DynamoDB::Table'].[PhysicalResourceId]" \
+                    --output text > TABLE_NAME.log
+                    '''
                 }
             }
         }
         stage('restTest') {
             steps {
                 catchError (buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                    sh '/opt/CasoPracticoVEnv/bin/python -m pytest --junitxml=result-integration.xml test/integration'
-                    sh '/opt/CasoPracticoVEnv/bin/python -m pytest --junitxml=result-unit.xml test/unit'
+                    sh '''
+                        export BASE_URL=$(cat BASE_URL.log) 
+                        echo "URL Base de la API: $BASE_URL"
+                        export DYNAMODB_TABLE=$(cat TABLE_NAME.log)
+                        /opt/CasoPracticoVEnv/bin/python -m pytest --junitxml=result-integration.xml test/integration/todoApiTest.py
+                        /opt/CasoPracticoVEnv/bin/python -m pytest --junitxml=result-unit.xml test/unit/TestToDo.py
+                    '''
                     junit 'result*.xml'
                 }
             }
