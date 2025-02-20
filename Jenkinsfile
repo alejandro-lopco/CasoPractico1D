@@ -3,7 +3,7 @@ pipeline {
     stages {
         stage('getCode') {
             steps {
-                git branch: 'develop', url: 'https://github.com/alejandro-lopco/CasoPractico1D'
+                git branch: 'develop', credentialsId: 'alejandro-lopco', url: 'https://github.com/alejandro-lopco/CasoPractico1D'
                 stash includes: '**', name: 'repo'
             }
         }
@@ -21,7 +21,7 @@ pipeline {
         }
         stage('deploy') {
             steps {
-                catchError (buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                catchError (buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh 'sam build'
                     sh '''sam deploy \
                         --stack-name 'ToDoAWSCasoPractico1D' \
@@ -48,7 +48,7 @@ pipeline {
         }
         stage('restTest') {
             steps {
-                catchError (buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                catchError (buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh '''
                         export BASE_URL=$(cat BASE_URL.log) 
                         echo "URL Base de la API: $BASE_URL"
@@ -57,6 +57,21 @@ pipeline {
                         /opt/CasoPracticoVEnv/bin/python -m pytest --junitxml=result-unit.xml test/unit/TestToDo.py
                     '''
                     junit 'result*.xml'
+                }
+            }
+        }
+        stage('promote') {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    withCredentials([string(credentialsId: 'alejandro-lopco-pat-general', variable: 'PAT')]) {
+                        sh """
+                            echo "PAT está inicializado: ${PAT}"
+                            git fetch --all
+                            git checkout master
+                            git merge origin/develop -m "Merge develop to master via Jenkins"
+                            git push https://${PAT}@github.com/alejandro-lopco/CasoPractico1D.git master
+                        """
+                    }
                 }
             }
         }
