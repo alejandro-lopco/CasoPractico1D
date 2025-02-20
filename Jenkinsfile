@@ -65,7 +65,6 @@ pipeline {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     withCredentials([string(credentialsId: 'alejandro-lopco-pat-general', variable: 'PAT')]) {
                         sh """
-                            echo "PAT está inicializado: ${PAT}"
                             git fetch --all
                             git checkout master
                             git merge origin/develop -m "Merge develop to master via Jenkins"
