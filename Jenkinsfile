@@ -37,5 +37,14 @@ pipeline {
                 }
             }
         }
+        stage('restTest') {
+            steps {
+                catchError (buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh '/opt/CasoPracticoVEnv/bin/python -m pytest --junitxml=result-integration.xml test/integration'
+                    sh '/opt/CasoPracticoVEnv/bin/python -m pytest --junitxml=result-unit.xml test/unit'
+                    junit 'result*.xml'
+                }
+            }
+        }
     }
 }
