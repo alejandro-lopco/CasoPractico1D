@@ -3,7 +3,9 @@ pipeline {
     stages {
         stage('getCode') {
             steps {
-                git branch: 'develop', credentialsId: 'alejandro-lopco', url: 'https://github.com/alejandro-lopco/CasoPractico1D'
+                sh 'rm -f samconfig.toml'
+                git branch: 'master', credentialsId: 'alejandro-lopco', url: 'https://github.com/alejandro-lopco/CasoPractico1D'
+                sh 'curl https://raw.githubusercontent.com/alejandro-lopco/CasoPractico1D-Config/refs/heads/production/samconfig.toml > samconfig.toml'
                 stash includes: '**', name: 'repo'
             }
         }
@@ -29,7 +31,7 @@ pipeline {
                     --region 'us-east-1' \
                     -t 'template.yaml' \
                     --config-file 'samconfig.toml' \
-                    --parameter-overrides "Stage=staging" \
+                    --parameter-overrides "Stage=production" \
                     --role-arn 'arn:aws:iam::159559436639:role/LabRole'
                 '''
             }
@@ -56,18 +58,6 @@ pipeline {
                     /opt/VEnvAgente2/bin/python -m pytest --junitxml=result-unit.xml test/unit/TestToDo.py                                
                 '''           
                 junit 'result*.xml'
-            }
-        }
-        stage('promote') {
-            steps {
-                withCredentials([string(credentialsId: 'alejandro-lopco-pat-general', variable: 'PAT')]) {
-                    sh """
-                        git fetch --all
-                        git checkout master
-                        git merge origin/develop -m "Merge develop to master via Jenkins"
-                        git push https://${PAT}@github.com/alejandro-lopco/CasoPractico1D.git master
-                    """
-                }
             }
         }
     }
