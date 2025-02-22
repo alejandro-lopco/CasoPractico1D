@@ -41,12 +41,12 @@ pipeline {
             steps {
                 unstash 'repo'
                 sh '''aws cloudformation describe-stacks \
-                    --stack-name ToDoAWSCasoPractico1D \
+                    --stack-name ToDoAWSCasoPractico1D-staging \
                     --query "Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue" \
                     --output text > BASE_URL.log
 
                     aws cloudformation describe-stack-resources \
-                    --stack-name ToDoAWSCasoPractico1D \
+                    --stack-name ToDoAWSCasoPractico1D-staging \
                     --query "StackResources[?ResourceType=='AWS::DynamoDB::Table'].[PhysicalResourceId]" \
                     --output text > TABLE_NAME.log    
 
