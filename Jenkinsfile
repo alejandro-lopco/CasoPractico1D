@@ -64,7 +64,8 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'alejandro-lopco-pat-general', variable: 'PAT')]) {
                     sh """
-                        git fetch --all
+                        git fetch --no-tags --force --progress -- https://github.com/alejandro-lopco/CasoPractico1D.git +refs/heads/*:refs/remotes/origin/*
+                        git branch -a
                         git checkout master
                         git merge origin/develop -m "Merge develop to master via Jenkins"
                         git push https://${PAT}@github.com/alejandro-lopco/CasoPractico1D.git master
