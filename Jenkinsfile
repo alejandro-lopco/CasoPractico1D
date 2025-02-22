@@ -25,7 +25,7 @@ pipeline {
             steps {
                 sh 'sam build'
                 sh '''sam deploy \
-                    --stack-name 'ToDoAWSCasoPractico1D' \
+                    --stack-name 'ToDoAWSCasoPractico1D-production' \
                     --capabilities 'CAPABILITY_IAM' \
                     --s3-bucket 'casopractico1d' \
                     --region 'us-east-1' \
