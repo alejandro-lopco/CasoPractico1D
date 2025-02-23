@@ -4,8 +4,8 @@ pipeline {
         stage('getCode') {
             steps {
                 sh 'rm -f samconfig.toml'
-                git branch: 'develop', credentialsId: 'alejandro-lopco', url: 'https://github.com/alejandro-lopco/CasoPractico1D'
-                sh 'curl https://raw.githubusercontent.com/alejandro-lopco/CasoPractico1D-Config/refs/heads/staging/samconfig.toml > samconfig.toml'                
+                git branch: 'master', credentialsId: 'alejandro-lopco', url: 'https://github.com/alejandro-lopco/CasoPractico1D'
+                sh 'curl https://raw.githubusercontent.com/alejandro-lopco/CasoPractico1D-Config/refs/heads/production/samconfig.toml > samconfig.toml'
                 stash includes: '**', name: 'repo'
             }
         }
@@ -25,13 +25,13 @@ pipeline {
             steps {
                 sh 'sam build'
                 sh '''sam deploy \
-                    --stack-name 'ToDoAWSCasoPractico1D-staging' \
+                    --stack-name 'ToDoAWSCasoPractico1D-production' \
                     --capabilities 'CAPABILITY_IAM' \
                     --s3-bucket 'casopractico1d' \
                     --region 'us-east-1' \
                     -t 'template.yaml' \
                     --config-file 'samconfig.toml' \
-                    --parameter-overrides "Stage=staging" \
+                    --parameter-overrides "Stage=production" \
                     --role-arn 'arn:aws:iam::159559436639:role/LabRole'
                 '''
             }
@@ -41,12 +41,12 @@ pipeline {
             steps {
                 unstash 'repo'
                 sh '''aws cloudformation describe-stacks \
-                    --stack-name ToDoAWSCasoPractico1D-staging \
+                    --stack-name ToDoAWSCasoPractico1D-production \
                     --query "Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue" \
                     --output text > BASE_URL.log
 
                     aws cloudformation describe-stack-resources \
-                    --stack-name ToDoAWSCasoPractico1D-staging \
+                    --stack-name ToDoAWSCasoPractico1D-production \
                     --query "StackResources[?ResourceType=='AWS::DynamoDB::Table'].[PhysicalResourceId]" \
                     --output text > TABLE_NAME.log    
 
@@ -58,19 +58,6 @@ pipeline {
                     /opt/VEnvAgente2/bin/python -m pytest --junitxml=result-unit.xml test/unit/TestToDo.py                                
                 '''           
                 junit 'result*.xml'
-            }
-        }
-        stage('promote') {
-            steps {
-                withCredentials([string(credentialsId: 'alejandro-lopco-pat-general', variable: 'PAT')]) {
-                    sh """
-                        git fetch --no-tags --force --progress -- https://github.com/alejandro-lopco/CasoPractico1D.git +refs/heads/*:refs/remotes/origin/*
-                        git branch -a
-                        git checkout -b master origin/develop
-                        git merge origin/develop -m "Merge develop to master via Jenkins"
-                        git push https://${PAT}@github.com/alejandro-lopco/CasoPractico1D.git master
-                    """
-                }
             }
         }
     }
